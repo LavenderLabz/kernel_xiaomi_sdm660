@@ -8,10 +8,15 @@ on:
         required: true
         type: boolean
         default: true
+      include_susfs:
+        description: 'Build with SUSFS (Requires ReSukiSU/KernelSU)?'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   build:
-    name: Build Kernel (KSU=${{ inputs.include_ksu }})
+    name: Build Kernel (${{ (inputs.include_susfs == true || inputs.include_ksu == true) && (inputs.include_susfs == true && 'KSU+SUSFS' || 'KSU') || 'Vanilla' }})
     runs-on: ubuntu-22.04
 
     steps:
@@ -27,14 +32,19 @@ jobs:
       - name: Run build script
         run: |
           chmod +x build.sh
+          BUILD_FLAGS=""
           if [ "${{ inputs.include_ksu }}" == "true" ]; then
-            ./build.sh --ksu
-          else
-            ./build.sh
+            BUILD_FLAGS="$BUILD_FLAGS --ksu"
+            if [ "${{ inputs.include_susfs }}" == "true" ]; then
+              BUILD_FLAGS="$BUILD_FLAGS --susfs"
+            fi
+          elif [ "${{ inputs.include_susfs }}" == "true" ]; then
+            BUILD_FLAGS="--ksu --susfs"
           fi
+          ./build.sh $BUILD_FLAGS
 
       - name: Upload Kernel Zip
         uses: actions/upload-artifact@v4
         with:
-          name: SouthWest-NG-lavender-${{ inputs.include_ksu == true && 'KSU' || 'NoKSU' }}
+          name: SouthWest-NG-lavender-${{ (inputs.include_susfs == true || inputs.include_ksu == true) && (inputs.include_susfs == true && 'KSU-SUSFS' || 'KSU') || 'NoKSU' }}
           path: "*.zip"
