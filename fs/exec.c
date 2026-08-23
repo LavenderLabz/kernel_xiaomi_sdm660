@@ -61,6 +61,9 @@
 #include <linux/pipe_fs_i.h>
 #include <linux/oom.h>
 #include <linux/compat.h>
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs_def.h>
+#endif
 #include <linux/vmalloc.h>
 
 #include <linux/uaccess.h>
@@ -1950,11 +1953,34 @@ out_ret:
 	return retval;
 }
 
+#ifdef CONFIG_KSU_SUSFS
+extern struct static_key_true ksu_su_compat_enabled;
+extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
+extern bool __ksu_is_allow_uid_for_current(uid_t uid);
+extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
+			void *envp, int *flags);
+extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr, void *argv,
+				void *envp, int *flags);
+#endif
+
 static int do_execveat_common(int fd, struct filename *filename,
 			      struct user_arg_ptr argv,
 			      struct user_arg_ptr envp,
 			      int flags)
 {
+#ifdef CONFIG_KSU_SUSFS
+	if (likely(susfs_is_current_proc_no_su()))
+		goto orig_flow;
+
+	if (static_branch_likely(&ksu_su_compat_enabled)) {
+		if (static_branch_unlikely(&susfs_is_sdcard_android_data_not_decrypted))
+			ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+		else
+			ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
+	}
+
+orig_flow:
+#endif
 	return __do_execve_file(fd, filename, argv, envp, flags, NULL);
 }
 

@@ -19,6 +19,9 @@
 #include <linux/shmem_fs.h>
 #include <linux/uaccess.h>
 #include <linux/pkeys.h>
+#if defined(CONFIG_KSU_SUSFS_SUS_KSTAT) || defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
+#include <linux/susfs_def.h>
+#endif
 #include <linux/mm_inline.h>
 #include <linux/ctype.h>
 
@@ -853,6 +856,13 @@ static int show_smap(struct seq_file *m, void *v)
 	struct vm_area_struct *vma = v;
 	struct mem_size_stats mss;
 
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+	if (vma->vm_file) {
+		if (SUSFS_IS_INODE_SUS_MAP(file_inode(vma->vm_file)))
+			return 0;
+	}
+#endif
+
 	memset(&mss, 0, sizeof(mss));
 
 	smap_gather_stats(vma, &mss);
@@ -1622,7 +1632,17 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 		ret = mmap_read_lock_killable(mm);
 		if (ret)
 			goto out_free;
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+		{
+			struct vm_area_struct *vma = find_vma(mm, start_vaddr);
+			if (vma && vma->vm_file && SUSFS_IS_INODE_SUS_MAP(file_inode(vma->vm_file)))
+				goto bypass_pagemap_walk;
+		}
+#endif
 		ret = walk_page_range(start_vaddr, end, &pagemap_walk);
+#ifdef CONFIG_KSU_SUSFS_SUS_MAP
+bypass_pagemap_walk:
+#endif
 		mmap_read_unlock(mm);
 		start_vaddr = end;
 

@@ -20,6 +20,12 @@
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
 #include <linux/compat.h>
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+#include <linux/susfs_def.h>
+#include <linux/namei.h>
+extern bool susfs_is_inode_sus_path(struct inode *inode);
+extern int susfs_get_data_path(struct path *path);
+#endif
 
 #include <linux/uaccess.h>
 
@@ -119,6 +125,9 @@ struct old_linux_dirent {
 struct readdir_callback {
 	struct dir_context ctx;
 	struct old_linux_dirent __user * dirent;
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	struct super_block *sb;
+#endif
 	int result;
 };
 
@@ -167,15 +176,35 @@ SYSCALL_DEFINE3(old_readdir, unsigned int, fd,
 		.ctx.actor = fillonedir,
 		.dirent = dirent
 	};
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	int path_err = -EINVAL;
+	struct path path;
+#endif
 
 	if (!f.file)
 		return -EBADF;
 
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	if (f.file->f_inode->i_sb->s_magic == FUSE_SUPER_MAGIC) {
+		path_err = susfs_get_data_path(&path);
+		if (!path_err) {
+			buf.sb = path.dentry->d_inode->i_sb;
+			goto orig_flow;
+		}
+	}
+	buf.sb = f.file->f_inode->i_sb;
+
+orig_flow:
+#endif
 	error = iterate_dir(f.file, &buf.ctx);
 	if (buf.result)
 		error = buf.result;
 
 	fdput_pos(f);
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	if (!path_err)
+		path_put(&path);
+#endif
 	return error;
 }
 
@@ -387,6 +416,9 @@ struct compat_old_linux_dirent {
 struct compat_readdir_callback {
 	struct dir_context ctx;
 	struct compat_old_linux_dirent __user *dirent;
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	struct super_block *sb;
+#endif
 	int result;
 };
 
@@ -436,15 +468,35 @@ COMPAT_SYSCALL_DEFINE3(old_readdir, unsigned int, fd,
 		.ctx.actor = compat_fillonedir,
 		.dirent = dirent
 	};
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	int path_err = -EINVAL;
+	struct path path;
+#endif
 
 	if (!f.file)
 		return -EBADF;
 
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	if (f.file->f_inode->i_sb->s_magic == FUSE_SUPER_MAGIC) {
+		path_err = susfs_get_data_path(&path);
+		if (!path_err) {
+			buf.sb = path.dentry->d_inode->i_sb;
+			goto orig_flow;
+		}
+	}
+	buf.sb = f.file->f_inode->i_sb;
+
+orig_flow:
+#endif
 	error = iterate_dir(f.file, &buf.ctx);
 	if (buf.result)
 		error = buf.result;
 
 	fdput_pos(f);
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	if (!path_err)
+		path_put(&path);
+#endif
 	return error;
 }
 
