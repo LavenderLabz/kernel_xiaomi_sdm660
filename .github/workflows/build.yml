@@ -3,38 +3,72 @@ name: Build SouthWest-NG Kernel
 on:
   workflow_dispatch:
     inputs:
-      include_ksu:
-        description: 'Build with ReSukiSU (KernelSU)?'
+      variant:
+        description: 'Select variant to build (Default builds all 6 flavors in parallel)'
         required: true
-        type: boolean
-        default: true
+        type: choice
+        default: 'ALL (Build all 6 variants)'
+        options:
+          - 'ALL (Build all 6 variants)'
+          - 'Vanilla'
+          - 'Vanilla-UV'
+          - 'ReSukiSU'
+          - 'ReSukiSU-UV'
+          - 'ReSukiSU-SUSFS'
+          - 'ReSukiSU-SUSFS-UV'
 
 jobs:
   build:
-    name: Build Kernel (KSU=${{ inputs.include_ksu }})
+    name: Build ${{ matrix.name }}
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "Vanilla"
+            flags: ""
+          - name: "Vanilla-UV"
+            flags: "--undervolt"
+          - name: "ReSukiSU"
+            flags: "--resukisu"
+          - name: "ReSukiSU-UV"
+            flags: "--resukisu --undervolt"
+          - name: "ReSukiSU-SUSFS"
+            flags: "--resukisu-susfs"
+          - name: "ReSukiSU-SUSFS-UV"
+            flags: "--resukisu-susfs --undervolt"
 
     steps:
+      - name: Check if variant is selected
+        id: filter
+        run: |
+          CHOICE="${{ inputs.variant }}"
+          if [ "$CHOICE" == "ALL (Build all 6 variants)" ] || [ "$CHOICE" == "${{ matrix.name }}" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        if: steps.filter.outputs.run == 'true'
+        uses: actions/checkout@v7
 
       - name: Install dependencies
+        if: steps.filter.outputs.run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
           sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
       - name: Run build script
+        if: steps.filter.outputs.run == 'true'
         run: |
           chmod +x build.sh
-          if [ "${{ inputs.include_ksu }}" == "true" ]; then
-            ./build.sh --ksu
-          else
-            ./build.sh
-          fi
+          ./build.sh ${{ matrix.flags }}
 
       - name: Upload Kernel Zip
-        uses: actions/upload-artifact@v4
+        if: steps.filter.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
         with:
-          name: SouthWest-NG-lavender-${{ inputs.include_ksu == true && 'KSU' || 'NoKSU' }}
+          name: SouthWest-NG-lavender-${{ matrix.name }}
           path: "*.zip"
