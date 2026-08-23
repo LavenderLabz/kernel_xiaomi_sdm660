@@ -328,4 +328,73 @@ source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
 
+
+menu "SUSFS"
+	depends on KSU_SUSFS
+
+config KSU_SUSFS_SUS_PATH
+	bool "Enable SUS_PATH"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Hide specific paths and loops from userspace processes.
+
+config KSU_SUSFS_SUS_MOUNT
+	bool "Enable SUS_MOUNT"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Hide mount points and unshared mount IDs from non-root procs.
+
+config KSU_SUSFS_SUS_KSTAT
+	bool "Enable SUS_KSTAT"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Spoof inode and dev attributes in generic_fillattr.
+
+config KSU_SUSFS_SPOOF_UNAME
+	bool "Enable SPOOF_UNAME"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Allow spoofing uname release and version.
+
+config KSU_SUSFS_ENABLE_LOG
+	bool "Enable SUSFS logging"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Enable kernel logging for SUSFS events.
+
+config KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+	bool "Hide KSU and SUSFS symbols in kallsyms"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Filter ksu and susfs symbol names in /proc/kallsyms.
+
+config KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+	bool "Enable SPOOF_CMDLINE_OR_BOOTCONFIG"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Allow spoofing /proc/cmdline.
+
+config KSU_SUSFS_OPEN_REDIRECT
+	bool "Enable OPEN_REDIRECT"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Transparently redirect file openings and symlinks.
+
+config KSU_SUSFS_SUS_MAP
+	bool "Enable SUS_MAP"
+	depends on KSU_SUSFS
+	default y
+	help
+	  Hide specific maps in proc map files and pagemap.
+
+endmenu
+
 endmenu

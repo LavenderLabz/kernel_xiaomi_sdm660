@@ -74,6 +74,8 @@ static inline int user_path_dir(const char __user *name, struct path *path)
 }
 
 extern int kern_path(const char *, unsigned, struct path *);
+struct filename;
+extern int filename_lookup(int dfd, struct filename *name, unsigned flags, struct path *path, struct path *root);
 
 extern struct dentry *kern_path_create(int, const char *, struct path *, unsigned int);
 extern struct dentry *user_path_create(int, const char __user *, struct path *, unsigned int);
