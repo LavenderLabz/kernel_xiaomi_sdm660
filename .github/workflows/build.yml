@@ -1,5 +1,8 @@
 name: Build SouthWest-NG Kernel
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -66,9 +69,10 @@ jobs:
           chmod +x build.sh
           ./build.sh ${{ matrix.flags }}
 
-      - name: Upload Kernel Zip
+      - name: Upload Kernel Zip to Releases
         if: steps.filter.outputs.run == 'true'
-        uses: actions/upload-artifact@v7
+        uses: softprops/action-gh-release@v2
         with:
-          name: SouthWest-NG-lavender-${{ matrix.name }}
-          path: "*.zip"
+          files: "*.zip"
+          tag_name: "Build-${{ github.run_number }}"
+          name: "SouthWest-NG Lavender - Build ${{ github.run_number }}"
