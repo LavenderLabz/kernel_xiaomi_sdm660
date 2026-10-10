@@ -18,15 +18,11 @@ BOOT_DIR="$OUT_DIR/arch/arm64/boot"
 KERNEL_IMG="$BOOT_DIR/Image.gz-dtb"
 
 BUILD_KSU=0
-BUILD_SUSFS=0
 BUILD_UNDERVOLT=0
 ZIPNAME_PREFIX="SouthWest-NG-${DEVICE}-$(date '+%Y%m%d-%H%M')"
 
 for arg in "$@"; do
-    if [[ "$arg" == "--ksu" || "$arg" == "--resukisu" ]]; then
-        BUILD_KSU=1
-    elif [[ "$arg" == "--susfs" || "$arg" == "--resukisu-susfs" ]]; then
-        BUILD_SUSFS=1
+    if [[ "$arg" == "--ksu" || "$arg" == "--bakasu" ]]; then
         BUILD_KSU=1
     elif [[ "$arg" == "--undervolt" || "$arg" == "--uv" || "$arg" == "-uv" ]]; then
         BUILD_UNDERVOLT=1
@@ -45,10 +41,8 @@ for arg in "$@"; do
     fi
 done
 
-if [ "$BUILD_SUSFS" -eq 1 ]; then
-    ZIPNAME_PREFIX="${ZIPNAME_PREFIX}-ReSukiSU-SUSFS"
-elif [ "$BUILD_KSU" -eq 1 ]; then
-    ZIPNAME_PREFIX="${ZIPNAME_PREFIX}-ReSukiSU"
+if [ "$BUILD_KSU" -eq 1 ]; then
+    ZIPNAME_PREFIX="${ZIPNAME_PREFIX}-BakaSU"
 else
     ZIPNAME_PREFIX="${ZIPNAME_PREFIX}-Vanilla"
 fi
@@ -95,31 +89,15 @@ mkdir -p out
 make "${MAKE_ARGS[@]}" "$DEFCONFIG" || exit 1
 
 if [ "$BUILD_KSU" -eq 1 ]; then
-    echo "[*] Fetching ReSukiSU driver..."
-    curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
+    echo "[*] Fetching BakaSU driver..."
+    curl -LSs "https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/setup.sh" | bash
     echo "[*] Injecting KernelSU configs dynamically..."
     echo "CONFIG_KSU=y" >> out/.config
 
-    if [ "$BUILD_SUSFS" -eq 1 ]; then
-        echo "[*] Enabling SUSFS configs (ReSukiSU has built-in SUSFS support)..."
-        cat << 'EOF' >> out/.config
-CONFIG_KSU_SUSFS=y
-CONFIG_KSU_SUSFS_SUS_PATH=y
-CONFIG_KSU_SUSFS_SUS_MOUNT=y
-CONFIG_KSU_SUSFS_SUS_KSTAT=y
-CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-CONFIG_KSU_SUSFS_ENABLE_LOG=y
-CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-CONFIG_KSU_SUSFS_SUS_MAP=y
-EOF
-    else
-        echo "CONFIG_KSU_MANUAL_HOOK=y" >> out/.config
-        echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK is not set" >> out/.config
-        echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK is not set" >> out/.config
-        echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK is not set" >> out/.config
-    fi
+    echo "CONFIG_KSU_MANUAL_HOOK=y" >> out/.config
+    echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK is not set" >> out/.config
+    echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK is not set" >> out/.config
+    echo "# CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK is not set" >> out/.config
 fi
 
 make "${MAKE_ARGS[@]}" olddefconfig || exit 1

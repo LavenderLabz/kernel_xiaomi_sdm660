@@ -7,18 +7,16 @@ on:
   workflow_dispatch:
     inputs:
       variant:
-        description: 'Select variant to build (Default builds all 6 flavors in parallel)'
+        description: 'Select variant to build (Default builds all 4 flavors in parallel)'
         required: true
         type: choice
-        default: 'ALL (Build all 6 variants)'
+        default: 'ALL (Build all 4 variants)'
         options:
-          - 'ALL (Build all 6 variants)'
+          - 'ALL (Build all 4 variants)'
           - 'Vanilla'
           - 'Vanilla-UV'
-          - 'ReSukiSU'
-          - 'ReSukiSU-UV'
-          - 'ReSukiSU-SUSFS'
-          - 'ReSukiSU-SUSFS-UV'
+          - 'BakaSU'
+          - 'BakaSU-UV'
 
 jobs:
   build:
@@ -32,21 +30,17 @@ jobs:
             flags: ""
           - name: "Vanilla-UV"
             flags: "--undervolt"
-          - name: "ReSukiSU"
-            flags: "--resukisu"
-          - name: "ReSukiSU-UV"
-            flags: "--resukisu --undervolt"
-          - name: "ReSukiSU-SUSFS"
-            flags: "--resukisu-susfs"
-          - name: "ReSukiSU-SUSFS-UV"
-            flags: "--resukisu-susfs --undervolt"
+          - name: "BakaSU"
+            flags: "--bakasu"
+          - name: "BakaSU-UV"
+            flags: "--bakasu --undervolt"
 
     steps:
       - name: Check if variant is selected
         id: filter
         run: |
           CHOICE="${{ inputs.variant }}"
-          if [ "$CHOICE" == "ALL (Build all 6 variants)" ] || [ "$CHOICE" == "${{ matrix.name }}" ]; then
+          if [ "$CHOICE" == "ALL (Build all 4 variants)" ] || [ "$CHOICE" == "${{ matrix.name }}" ]; then
             echo "run=true" >> $GITHUB_OUTPUT
           else
             echo "run=false" >> $GITHUB_OUTPUT
